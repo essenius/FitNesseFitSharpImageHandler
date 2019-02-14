@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.271
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageHandler", "ImageHandler\ImageHandler.csproj", "{F9440116-2956-4F14-9F89-2EFD2D3197BE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageHandlerTest", "ImageHandlerTest\ImageHandlerTest.csproj", "{16C13282-5608-4897-99CC-6DDAD4111D63}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F9440116-2956-4F14-9F89-2EFD2D3197BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9440116-2956-4F14-9F89-2EFD2D3197BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9440116-2956-4F14-9F89-2EFD2D3197BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9440116-2956-4F14-9F89-2EFD2D3197BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16C13282-5608-4897-99CC-6DDAD4111D63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16C13282-5608-4897-99CC-6DDAD4111D63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16C13282-5608-4897-99CC-6DDAD4111D63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16C13282-5608-4897-99CC-6DDAD4111D63}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7A789A5E-9342-4AC4-824F-1DD9375D8D2B}
+	EndGlobalSection
+EndGlobal
