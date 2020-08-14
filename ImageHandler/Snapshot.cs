@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2019 Rik Essenius
+﻿// Copyright 2016-2020 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -19,8 +18,6 @@ using static System.FormattableString;
 
 namespace ImageHandler
 {
-    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global", Justification = "Used externally"),
-     SuppressMessage("ReSharper", "UnusedMethodReturnValue.Global", Justification = "Used externally")]
     public class Snapshot
     {
         private Guid _id;
