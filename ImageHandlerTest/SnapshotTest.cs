@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2019 Rik Essenius
+﻿// Copyright 2016-2021 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -13,6 +13,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using ImageHandler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -39,22 +40,35 @@ namespace ImageHandlerTest
             Assert.AreEqual(rendering, cloneSnapshot.Rendering);
         }
 
+        private static void SnapshotFullPathNameAssert(string argument, string expected)
+        {
+            var snapshotType = typeof(Snapshot);
+            var method = snapshotType.GetMethod("FullPathName", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.IsNotNull(method, "Method not null");
+            var path = method.Invoke(null, new object[] {argument}) as string;
+            Assert.IsFalse(string.IsNullOrEmpty(path), "Path not empty");
+
+            if (expected == null)
+            {
+                // we have a random file name that should end in jpg
+                Assert.IsTrue(path.EndsWith(".jpg", StringComparison.InvariantCultureIgnoreCase), $"call with '{argument}' ends in .jpg");
+                Assert.IsTrue(path.Length > 4, "There is a file name part");
+                Debug.Print(path);
+            }
+            else
+            {
+                Assert.AreEqual(expected, path, $"not equal to {expected}");
+            }
+        }
+
         [TestMethod, TestCategory("Unit")]
         public void SnapshotFullPathNameTest()
         {
-            var target = new PrivateType(typeof(Snapshot));
-            var path = (string) target.InvokeStatic("FullPathName", string.Empty);
-            Assert.IsTrue(path.EndsWith(".jpg", StringComparison.InvariantCulture));
-            Assert.IsTrue(path.Length > 4);
-            Debug.Print(path);
-
-            path = (string) target.InvokeStatic("FullPathName", ".");
-            Assert.IsTrue(path.EndsWith(".jpg", StringComparison.InvariantCulture));
-            Assert.IsTrue(path.Length > 4);
-
-            Assert.AreEqual("test.jpg", (string) target.InvokeStatic("FullPathName", "test"));
-            Assert.AreEqual("test.JPG", (string) target.InvokeStatic("FullPathName", "test.JPG"));
-            Assert.AreEqual("D:\\test.jpg", (string) target.InvokeStatic("FullPathName", "D:\\test"));
+            SnapshotFullPathNameAssert(string.Empty, null);
+            SnapshotFullPathNameAssert(".", null);
+            SnapshotFullPathNameAssert("test", "test.jpg");
+            SnapshotFullPathNameAssert("test.JPG", "test.JPG");
+            SnapshotFullPathNameAssert("D:\\test", "D:\\test.jpg");
         }
 
         [TestMethod, TestCategory("Integration")]
@@ -203,7 +217,7 @@ namespace ImageHandlerTest
             Assert.AreEqual("image/jpeg", new Snapshot(jpg).MimeType);
             Assert.AreEqual("image/png", new Snapshot(png).MimeType);
             Assert.AreEqual("image/tiff", new Snapshot(tiff).MimeType);
-            Assert.AreEqual("image/unknown", new Snapshot(new byte[] { }).MimeType);
+            Assert.AreEqual("image/unknown", new Snapshot(Array.Empty<byte>()).MimeType);
         }
     }
 }

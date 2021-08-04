@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2020 Rik Essenius
+﻿// Copyright 2016-2021 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -45,11 +45,10 @@ namespace ImageHandler
             }
             catch (FormatException)
             {
-                using (var image = Image.FromFile(input))
-                {
-                    byteArray = image.ToByteArray(image.RawFormat);
-                }
+                using var image = Image.FromFile(input);
+                byteArray = image.ToByteArray(image.RawFormat);
             }
+
             Init(byteArray);
         }
 
@@ -78,16 +77,28 @@ namespace ImageHandler
 
         public string ToBase64 => Convert.ToBase64String(_imageBytes);
 
+        public byte[] ByteArray() => _imageBytes;
+
         public static Snapshot CaptureScreen(Rectangle bounds)
         {
-            using (var windowCapture = new Bitmap(bounds.Width, bounds.Height))
+            using var windowCapture = new Bitmap(bounds.Width, bounds.Height);
+            using var graphics = Graphics.FromImage(windowCapture);
+            graphics.CopyFromScreen(
+                new Point(bounds.Left, bounds.Top), Point.Empty, bounds.Size, CopyPixelOperation.SourceCopy);
+            return new Snapshot(windowCapture.ToByteArray(ImageFormat.Jpeg));
+        }
+
+        private void DoOnImage(Action<Image> action, Action failAction)
+        {
+            using var stream = new MemoryStream(_imageBytes);
+            try
             {
-                using (var graphics = Graphics.FromImage(windowCapture))
-                {
-                    graphics.CopyFromScreen(new Point(bounds.Left, bounds.Top), Point.Empty, bounds.Size,
-                        CopyPixelOperation.SourceCopy);
-                }
-                return new Snapshot(windowCapture.ToByteArray(ImageFormat.Jpeg));
+                var image = Image.FromStream(stream);
+                action(image);
+            }
+            catch (ArgumentException)
+            {
+                failAction();
             }
         }
 
@@ -107,26 +118,6 @@ namespace ImageHandler
             return fileName;
         }
 
-        public static Snapshot Parse(string input) => new Snapshot(input);
-
-        public byte[] ByteArray() => _imageBytes;
-
-        private void DoOnImage(Action<Image> action, Action failAction)
-        {
-            using (var stream = new MemoryStream(_imageBytes))
-            {
-                try
-                {
-                    var image = Image.FromStream(stream);
-                    action(image);
-                }
-                catch (ArgumentException)
-                {
-                    failAction();
-                }
-            }
-        }
-
         public override int GetHashCode() => ToBase64.GetHashCode();
 
         public void Init(byte[] byteArray)
@@ -142,6 +133,8 @@ namespace ImageHandler
                 _label = "Invalid Image";
             });
         }
+
+        public static Snapshot Parse(string input) => new Snapshot(input);
 
         public string Save(string path)
         {

@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2019 Rik Essenius
+﻿// Copyright 2016-2021 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -19,11 +19,9 @@ namespace ImageHandler
     {
         public static byte[] ToByteArray(this Image image, ImageFormat format)
         {
-            using (var ms = new MemoryStream())
-            {
-                image.Save(ms, format);
-                return ms.ToArray();
-            }
+            using var ms = new MemoryStream();
+            image.Save(ms, format);
+            return ms.ToArray();
         }
     }
 }
