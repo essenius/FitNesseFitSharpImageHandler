@@ -7,9 +7,12 @@
     <AnalysysMode>AllEnabledByDefault</AnalysysMode>
     <Version>3.0.0</Version>
     <Authors>Rik Essenius</Authors>
-    <Description>Support for loading, saving, capturing and displaying images in FitNesse tests</Description>
+    <Description>Support for loading, saving, capturing and displaying images in FitNesse/FitSharp tests</Description>
     <Copyright>Copyright © Rik Essenius 2016-2021</Copyright>
-    <RepositoryUrl>https://github.com/essenius/FitNesseFitSharpFibonacciDemo</RepositoryUrl>
+    <RepositoryUrl>https://github.com/essenius/FitNesseFitSharpImageHandler.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net5.0' ">
