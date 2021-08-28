@@ -73,7 +73,7 @@ namespace ImageHandler
             }
         }
 
-        public string Rendering => Invariant($"<img src='data:{MimeType};base64,{ToBase64}' />");
+        public string Rendering => Invariant($"<img src=\"data:{MimeType};base64,{ToBase64}\" />");
 
         public string ToBase64 => Convert.ToBase64String(_imageBytes);
 

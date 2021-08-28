@@ -32,7 +32,7 @@ namespace ImageHandlerTest
             Assert.IsTrue(Regex.IsMatch(idString, "Image #(-?\\d+) \\(2 x 1\\)"));
             Assert.AreEqual("image/jpeg", snapshot.MimeType);
             var rendering = snapshot.Rendering;
-            Assert.IsTrue(Regex.IsMatch(rendering, "<img src=\\'data:image\\/jpeg;base64,(\\S+)\\s\\/>"));
+            Assert.IsTrue(Regex.IsMatch(rendering, "<img src=\\\"data:image\\/jpeg;base64,(\\S+)\\s\\/>"));
             var cloneSnapshot = Snapshot.Parse(snapshot.ToBase64);
             Assert.AreEqual("image/jpeg", cloneSnapshot.MimeType);
             Assert.AreEqual(idString, cloneSnapshot.ToString());
