@@ -14,10 +14,14 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.Versioning;
 using static System.FormattableString;
 
 namespace ImageHandler
 {
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     public class Snapshot
     {
         private Guid _id;
@@ -69,7 +73,7 @@ namespace ImageHandler
                     {ImageFormat.Tiff.Guid, "image/tiff"}
                 };
 
-                return dictionary.ContainsKey(_id) ? dictionary[_id] : "image/unknown";
+                return dictionary.TryGetValue(_id, out var mimeType) ? mimeType : "image/unknown";
             }
         }
 

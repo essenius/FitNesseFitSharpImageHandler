@@ -12,11 +12,15 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.Versioning;
 
 namespace ImageHandler
 {
     internal static class ExtensionFunctions
     {
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         public static byte[] ToByteArray(this Image image, ImageFormat format)
         {
             using var ms = new MemoryStream();
