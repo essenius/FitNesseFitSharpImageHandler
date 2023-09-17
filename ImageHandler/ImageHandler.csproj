@@ -5,7 +5,7 @@
     <LangVersion>8.0</LangVersion>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysysMode>AllEnabledByDefault</AnalysysMode>
-    <Version>3.2.0</Version>
+    <Version>3.2.1</Version>
     <Authors>Rik Essenius</Authors>
     <Description>Support for loading, saving, capturing and displaying images in FitNesse/FitSharp tests</Description>
     <Copyright>Copyright © Rik Essenius 2016-2023</Copyright>

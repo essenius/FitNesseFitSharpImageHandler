@@ -18,7 +18,7 @@ using System.Runtime.Versioning;
 
 namespace ImageHandler
 {
-    public static class ExtensionFunctions
+    internal static class ExtensionFunctions
     {
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
