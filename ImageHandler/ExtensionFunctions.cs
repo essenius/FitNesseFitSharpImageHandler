@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2021 Rik Essenius
+﻿// Copyright 2016-2023 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -12,11 +12,13 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+#if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
+#endif
 
 namespace ImageHandler
 {
-    internal static class ExtensionFunctions
+    public static class ExtensionFunctions
     {
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]

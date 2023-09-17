@@ -1,11 +1,20 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31229.75
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34003.232
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageHandler", "ImageHandler\ImageHandler.csproj", "{F9440116-2956-4F14-9F89-2EFD2D3197BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageHandler", "ImageHandler\ImageHandler.csproj", "{F9440116-2956-4F14-9F89-2EFD2D3197BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageHandlerTest", "ImageHandlerTest\ImageHandlerTest.csproj", "{16C13282-5608-4897-99CC-6DDAD4111D63}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageHandlerTest", "ImageHandlerTest\ImageHandlerTest.csproj", "{16C13282-5608-4897-99CC-6DDAD4111D63}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EB4216F-3025-4EB9-A77A-E0D4FDA2D212}"
+	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+		ReleaseNotes.txt = ReleaseNotes.txt
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

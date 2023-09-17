@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2021 Rik Essenius
+﻿// Copyright 2016-2023 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -12,8 +12,11 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using ImageHandler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -21,9 +24,78 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ImageHandlerTest
 {
     [TestClass]
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
+    [DeploymentItem("3pixel.bmp")]
+    [DeploymentItem("4pixel.bmp")]
+    [DeploymentItem("4pixel-ok.bmp")]
+    [DeploymentItem("4pixel-off.bmp")]
+    [DeploymentItem("4pixel-1bad.bmp")]
     public class SnapshotTest
     {
-        [TestMethod, TestCategory("Unit")]
+        private static void AssertReductionFactor(int width, int height, int minDimension, int expectedResult)
+        {
+            var result = InvokePrivateMethod("ReductionFactor", null, new object[] { width, height, minDimension });
+            Assert.IsNotNull(result, $"Result not null for {width},{height},{minDimension}");
+            Assert.AreEqual(expectedResult, result, $"dimension ({width}, {height}) @ {minDimension} returns {result} instead of {expectedResult}");
+        }
+
+        private static void AssertSimilarityBetween(string leftName, string rightName, double similarity, string caption)
+        {
+            var left = Image.FromFile(leftName); // new byte[] { 0, 20, 40, 60 });
+            var right = Image.FromFile(rightName); // new byte[] { 2, 21, 40, 59 };
+
+            var resultObject = InvokePrivateMethod("SimilarityBetween", null, new object[] { left, right });
+            var result = Convert.ToDouble(resultObject);
+            Assert.IsTrue(Math.Abs(similarity - result) < double.Epsilon, $"{caption}: Similarity returns {result} instead of {similarity}");
+        }
+
+
+        public static Bitmap CreateImageFromByteArray(byte[] pixelData, int width, int height)
+        {
+            // Create a new Bitmap object with the specified width and height
+            var image = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+
+            // Lock the bitmap's data
+            var bmpData = image.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+
+            // Copy the pixel data from the byte array to the bitmap's data
+            Marshal.Copy(pixelData, 0, bmpData.Scan0, pixelData.Length);
+
+            // Unlock the bitmap's data
+            image.UnlockBits(bmpData);
+
+            return image;
+        }
+
+        private static object InvokePrivateMethod(string methodName, object target, object[] parameters)
+        {
+            var snapshotType = typeof(Snapshot);
+            var flags = BindingFlags.NonPublic;
+            flags |= target == null ? BindingFlags.Static : BindingFlags.Instance;
+            var method = snapshotType.GetMethod(methodName, flags);
+            Assert.IsNotNull(method, $"Method {methodName} not null");
+            var resultObject = method.Invoke(target, parameters);
+            Assert.IsNotNull(resultObject, $"Result not null for {methodName}");
+            return resultObject;
+        }
+
+        private static void PrintResult(byte[] result, int pixelsPerLine)
+        {
+            var i = 0;
+            foreach (var pixelColor in result)
+            {
+                Console.Write($"0x{pixelColor:X2}, ");
+                i++;
+                if (i != pixelsPerLine * 3) continue;
+                Console.WriteLine();
+                i = 0;
+            }
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
         public void SnapshotCaptureScreenTest()
         {
             var snapshot = Snapshot.CaptureScreen(new Rectangle(0, 0, 2, 1));
@@ -42,10 +114,8 @@ namespace ImageHandlerTest
 
         private static void SnapshotFullPathNameAssert(string argument, string expected)
         {
-            var snapshotType = typeof(Snapshot);
-            var method = snapshotType.GetMethod("FullPathName", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.IsNotNull(method, "Method not null");
-            var path = method.Invoke(null, new object[] {argument}) as string;
+            var result = InvokePrivateMethod("FullPathName", null, new object[] { argument });
+            var path = result.ToString();
             Assert.IsFalse(string.IsNullOrEmpty(path), "Path not empty");
 
             if (expected == null)
@@ -61,7 +131,8 @@ namespace ImageHandlerTest
             }
         }
 
-        [TestMethod, TestCategory("Unit")]
+        [TestMethod]
+        [TestCategory("Unit")]
         public void SnapshotFullPathNameTest()
         {
             SnapshotFullPathNameAssert(string.Empty, null);
@@ -71,14 +142,15 @@ namespace ImageHandlerTest
             SnapshotFullPathNameAssert("D:\\test", "D:\\test.jpg");
         }
 
-        [TestMethod, TestCategory("Integration")]
+        [TestMethod]
+        [TestCategory("Integration")]
         public void SnapshotLoadSaveTest()
         {
             var file = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             file = Path.ChangeExtension(file, "jpg");
             Assert.IsFalse(File.Exists(file));
             var snapshot = Snapshot.CaptureScreen(new Rectangle(0, 0, 2, 1));
-            var content = snapshot.ByteArray();
+            var content = snapshot.ByteArray;
             snapshot.Save(file);
             Assert.IsTrue(File.Exists(file));
             var sameSnapshot = Snapshot.Parse(file);
@@ -87,7 +159,8 @@ namespace ImageHandlerTest
             File.Delete(file);
         }
 
-        [TestMethod, TestCategory("Unit")]
+        [TestMethod]
+        [TestCategory("Unit")]
         public void SnapshotMimeTypeTest()
         {
             byte[] bmp =
@@ -218,6 +291,102 @@ namespace ImageHandlerTest
             Assert.AreEqual("image/png", new Snapshot(png).MimeType);
             Assert.AreEqual("image/tiff", new Snapshot(tiff).MimeType);
             Assert.AreEqual("image/unknown", new Snapshot(Array.Empty<byte>()).MimeType);
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void SnapshotReduce1Test()
+        {
+            var snapshot = new Snapshot(File.ReadAllBytes("4pixel.bmp"));
+            var resultobject = InvokePrivateMethod("Reduce", snapshot, new object[] { 1 });
+            var result = resultobject as Image;
+            Assert.IsNotNull(result, "result OK");
+
+            Assert.AreEqual(2, result.Width, "width OK");
+            Assert.AreEqual(2, result.Height, "height OK");
+            var pixelData = InvokePrivateMethod("GetPixelData", null, new object[] { result }) as byte[];
+            Assert.IsNotNull(pixelData, "pixelData OK");
+            PrintResult(pixelData, 10);
+            // the zeroes are fillers
+            var expected = new byte[]
+            {
+                0x05, 0x05, 0xFB, 0x05, 0xFB, 0x53, 0x00, 0x00,
+                0xFF, 0xFF, 0xFF, 0xFB, 0x4B, 0x05, 0x00, 0x00
+            };
+            CollectionAssert.AreEqual(expected, pixelData, "Reduced byte array OK");
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        [DeploymentItem("200x100.gif")]
+        public void SnapshotReduce20Test()
+        {
+            var snapshot = new Snapshot(File.ReadAllBytes("200x100.gif"));
+            var resultImage = InvokePrivateMethod("Reduce", snapshot, new object[] { 25 }) as Image;
+            Assert.IsNotNull(resultImage, "resultImage OK");
+            var pixelData = InvokePrivateMethod("GetPixelData", null, new object[] { resultImage }) as byte[];
+            Assert.IsNotNull(pixelData, "pixelData OK");
+
+            Assert.AreEqual(96, pixelData.Length, "number of bytes OK");
+            PrintResult(pixelData, 4);
+
+            var expected = new byte[]
+            {
+                0x02, 0x00, 0xF0, 0x03, 0x00, 0xF5, 0x00, 0x00, 0xFD, 0x0C, 0x00, 0xF1,
+                0xEB, 0x21, 0x07, 0xFA, 0x23, 0x00, 0xED, 0x20, 0x00, 0xEA, 0x1F, 0x00,
+
+                0x03, 0x0C, 0xE9, 0x03, 0x10, 0xE6, 0x00, 0x11, 0xDB, 0x0C, 0x0A, 0xC1,
+                0xC8, 0x25, 0x14, 0xE8, 0x33, 0x11, 0xF2, 0x35, 0x14, 0xF2, 0x33, 0x11,
+
+                0x03, 0xE9, 0x12, 0x03, 0xE8, 0x15, 0x00, 0xDB, 0x10, 0x0C, 0xD0, 0x15,
+                0xCA, 0xD2, 0xC8, 0xEB, 0xE0, 0xE2, 0xF5, 0xEF, 0xED, 0xF4, 0xF1, 0xF0,
+
+                0x02, 0xF0, 0x03, 0x03, 0xF4, 0x05, 0x00, 0xFD, 0x00, 0x0C, 0xFA, 0x12,
+                0xEC, 0xFA, 0xF1, 0xFA, 0xFC, 0xFD, 0xED, 0xF3, 0xF4, 0xEA, 0xED, 0xED
+            };
+            CollectionAssert.AreEqual(expected, pixelData, "Reduced byte array OK");
+            var bitmap = CreateImageFromByteArray(pixelData, 8, 4);
+            var filename = Path.Combine(Path.GetTempPath(), "200x100-reduced.gif");
+            bitmap.Save(filename, ImageFormat.Gif);
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void SnapshotReductionFactorTest()
+        {
+            AssertReductionFactor(0, 0, 0, 0);
+            AssertReductionFactor(0, 0, 16, 1);
+            AssertReductionFactor(400, 140, 16, 10);
+            AssertReductionFactor(399, 140, 16, 10);
+            AssertReductionFactor(399, 141, 16, 10);
+            AssertReductionFactor(420, 105, 16, 7);
+            AssertReductionFactor(5120, 1440, 32, 80);
+            // Area larger than int.MaxValue
+            AssertReductionFactor(int.MaxValue >> 8, int.MaxValue >> 8, 16, 262144);
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void SnapshotSimilarityBetweenTest()
+        {
+            AssertSimilarityBetween("4pixel.bmp", "4pixel-ok.bmp", 1, "all good");
+            AssertSimilarityBetween("4pixel.bmp", "4pixel-off.bmp", 0.875, "one pixel off");
+            AssertSimilarityBetween("4pixel.bmp", "4pixel-1bad.bmp", 0.75, "one pixel bad");
+            AssertSimilarityBetween("4pixel.bmp", "3pixel.bmp", 0.4, "two pixels good");
+            AssertSimilarityBetween("3pixel.bmp", "4pixel.bmp", 0.4, "two pixels good, order doesn't matter");
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void SnapshotSimilarityToTest()
+        {
+            var leftSnapshot = new Snapshot("4pixel.bmp");
+            var rightSnapshot = new Snapshot("4pixel-ok.bmp");
+            var result = leftSnapshot.SimilarityTo(rightSnapshot);
+            Assert.IsTrue(Math.Abs(1 - result) < double.Epsilon, "all good");
+            var rightSnapshot2 = new Snapshot("4pixel-off.bmp");
+            result = leftSnapshot.SimilarityTo(rightSnapshot2);
+            Assert.IsTrue(Math.Abs(0.875 - result) < double.Epsilon, $"1 pixel off on 3 values: {result}");
         }
     }
 }
