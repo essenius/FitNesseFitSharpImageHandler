@@ -4,3 +4,4 @@
 3.1.0 Migrated to .NET 6.0
 3.2.0 Added image comparison (method SimilarityTo)
 3.2.1 Made ExtensionFunctions internal to avoid conflicts with other libraries
+3.2.2 Removed forgotten debug statements

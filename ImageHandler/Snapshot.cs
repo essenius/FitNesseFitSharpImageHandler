@@ -137,7 +137,6 @@ namespace ImageHandler
             var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly,
                 PixelFormat.Format24bppRgb);
             var bytes = new byte[data.Stride * data.Height];
-            Console.WriteLine($"GetPixelData bytes: {data.Stride} * {data.Height} = {bytes.Length}");
             Marshal.Copy(data.Scan0, bytes, 0, bytes.Length);
             bitmap.UnlockBits(data);
             return bytes;
@@ -207,9 +206,6 @@ namespace ImageHandler
                 factor = i;
                 if (squaredDistance < double.Epsilon) break;
             }
-
-            Console.WriteLine(
-                $"min: {minFactor}, max: {maxFactor}, factor: {factor}, min sqared distance: {smallestSquaredDistance}, area: {area / factor / factor}");
             return factor;
         }
 
@@ -253,7 +249,6 @@ namespace ImageHandler
                     }
 
                     colorDistance = Math.Sqrt(colorDistance);
-                    Console.WriteLine($"colorDistance: {colorDistance}");
                     var pixelWeight = colorDistance <= 4 ? 0.0 : colorDistance <= 16 ? 0.5 : 1.0;
                     totalDifference += pixelWeight;
                 }
