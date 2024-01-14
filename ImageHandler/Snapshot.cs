@@ -190,7 +190,7 @@ namespace ImageHandler
             if (area < double.Epsilon) return 1;
             var maxFactor = Math.Sqrt(area) / minDimension;
             var minFactor = maxFactor / 2.0;
-            // find a factor that is closest to be divisable by both X and Y
+            // find a factor that is closest to be dividable by both X and Y
             // we could do this more efficiently, but with usual image sizes it won't matter a lot 
             var factor = 1;
             double smallestSquaredDistance = int.MaxValue;
