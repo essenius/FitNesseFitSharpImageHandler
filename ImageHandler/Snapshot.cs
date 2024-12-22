@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2023 Rik Essenius
+﻿// Copyright 2016-2024 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -14,28 +14,23 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
-#if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
-#endif
 using static System.FormattableString;
 
 namespace ImageHandler
 {
-#if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
-#endif
     public class Snapshot
     {
-        private int _height;
+        public Size Size { get; set; }
         private Guid _id;
+        private string _label;
 
         // Using a byte array since if using an Image created by a stream, that stream
         // needs to stay open for the lifetime of the image (and that's a pain)
-
-        private string _label;
-        private int _width;
 
         public Snapshot(byte[] byteArray) => Init(byteArray);
 
@@ -61,7 +56,46 @@ namespace ImageHandler
             Init(byteArray);
         }
 
+        /// <summary>
+        /// Byte array representing the snapshot. Do not change this directly (see CA1819).
+        /// </summary>
         public byte[] ByteArray { get; private set; }
+
+        /// <summary>
+        /// Capture the part of the screen indicated by the bounding rectangle and return it as a snapshot
+        /// </summary>
+        /// <param name="bounds">the bounding rectangle</param>
+        /// <returns>a snapshot object with the screen capture</returns>
+        public static Snapshot CaptureScreen(Rectangle bounds)
+        {
+            using var windowCapture = new Bitmap(bounds.Width, bounds.Height);
+            using var graphics = Graphics.FromImage(windowCapture);
+            graphics.CopyFromScreen(
+                new Point(bounds.Left, bounds.Top), Point.Empty, bounds.Size, CopyPixelOperation.SourceCopy);
+            return new Snapshot(windowCapture.ToByteArray(ImageFormat.Jpeg));
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Snapshot other && ToBase64.Equals(other.ToBase64, StringComparison.Ordinal);
+        }
+
+        public override int GetHashCode() => ToBase64.GetHashCode(StringComparison.InvariantCulture);
+
+        public void Init(byte[] byteArray)
+        {
+            ByteArray = byteArray;
+            DoOnImage(image =>
+            {
+                _id = image.RawFormat.Guid;
+                Size = new Size(image.Width, image.Height);
+                _label = Invariant($"Image #{GetHashCode()} ({Size.ToString()})");
+            }, () =>
+            {
+                _id = Guid.Empty;
+                _label = "Invalid Image";
+            });
+        }
 
         public string MimeType
         {
@@ -80,22 +114,67 @@ namespace ImageHandler
                     { ImageFormat.Tiff.Guid, "image/tiff" }
                 };
 
-                return dictionary.TryGetValue(_id, out var mimeType) ? mimeType : "image/unknown";
+                return dictionary.GetValueOrDefault(_id, "image/unknown");
             }
         }
 
+        public static Snapshot Parse(string input) => new(input);
+
         public string Rendering => Invariant($"<img src=\"data:{MimeType};base64,{ToBase64}\" />");
 
+        public string Save(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+            var fullPath = FullPathName(path);
+            DoOnImage(image => image.Save(fullPath, image.RawFormat), null);
+            return fullPath;
+        }
+
+        /// <summary>
+        /// Check similarity between two snapshots. The similarity is a number between 0 and 1, where 1 means the images are identical.
+        /// Scaling is taken into account, rotation is not. Scaled versions of images can be 100% similar.
+        /// </summary>
+        /// <param name="other">the snapshot to compare to</param>
+        /// <returns>similarity (0.0 - 1.0)</returns>
+        public double SimilarityTo(Snapshot other)
+        {
+            if (other == null) return 0.0;
+            var thisFactor = Size.ReductionFactor();
+            var thisNewSize = Size.Scaled(thisFactor);
+            var otherFactor = other.Size.ReductionFactor();
+            var otherNewSize = other.Size.Scaled(otherFactor);
+            if (Size.CouldBeScaled(other.Size))
+            {
+                var thisReducedArea = Size.ReducedArea(thisFactor);
+                var otherReducedArea = other.Size.ReducedArea(otherFactor);
+                var thisWins = thisReducedArea > otherReducedArea;
+                if (thisWins)
+                {
+                    otherNewSize = thisNewSize;
+                }
+                else
+                {
+                    thisNewSize = otherNewSize;
+                }
+            }
+            using var thisReduced = ReduceTo(thisNewSize);
+            using var otherReduced = other.ReduceTo(otherNewSize);
+            return SimilarityBetween(thisReduced, otherReduced);
+        }
+
+        /// <summary>
+        /// Return a base64 encoded string of the image
+        /// </summary>
         public string ToBase64 => Convert.ToBase64String(ByteArray);
 
-        public static Snapshot CaptureScreen(Rectangle bounds)
-        {
-            using var windowCapture = new Bitmap(bounds.Width, bounds.Height);
-            using var graphics = Graphics.FromImage(windowCapture);
-            graphics.CopyFromScreen(
-                new Point(bounds.Left, bounds.Top), Point.Empty, bounds.Size, CopyPixelOperation.SourceCopy);
-            return new Snapshot(windowCapture.ToByteArray(ImageFormat.Jpeg));
-        }
+        /// <summary>
+        /// Return a label for the image
+        /// </summary>
+        /// <returns>a short label showing the hash value and the size</returns>
+        public override string ToString() => _label;
+
+        // *** Internal/Private methods ***
+
 
         private void DoOnImage(Action<Image> action, Action failAction)
         {
@@ -128,12 +207,10 @@ namespace ImageHandler
             return fileName;
         }
 
-        public override int GetHashCode() => ToBase64.GetHashCode();
-
+        // Don't call this function with a null image
         private static byte[] GetPixelData(Image image)
         {
-            if (image == null) return Array.Empty<byte>();
-            var bitmap = new Bitmap(image);
+            using var bitmap = new Bitmap(image);
             var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly,
                 PixelFormat.Format24bppRgb);
             var bytes = new byte[data.Stride * data.Height];
@@ -142,83 +219,28 @@ namespace ImageHandler
             return bytes;
         }
 
-        public void Init(byte[] byteArray)
-        {
-            ByteArray = byteArray;
-            DoOnImage(image =>
-            {
-                _id = image.RawFormat.Guid;
-                _label = Invariant($"Image #{GetHashCode()} ({image.Width} x {image.Height})");
-                _width = image.Width;
-                _height = image.Height;
-            }, () =>
-            {
-                _id = Guid.Empty;
-                _label = "Invalid Image";
-            });
-        }
-
-        public static Snapshot Parse(string input) => new Snapshot(input);
-
-        private Image Reduce(int factor)
+        private Bitmap ReduceTo(Size newSize)
         {
             Bitmap reduced = null;
             DoOnImage(
                 image =>
                 {
-                    var newWidth = _width / factor;
-                    var newHeight = _height / factor;
-                    reduced = new Bitmap(image, newWidth, newHeight);
+                    reduced = new Bitmap(image, newSize.Width, newSize.Height);
                     using var graphics = Graphics.FromImage(reduced);
                     graphics.CompositingMode = CompositingMode.SourceCopy;
                     graphics.CompositingQuality = CompositingQuality.HighQuality;
                     graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                     graphics.SmoothingMode = SmoothingMode.HighQuality;
                     graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                    graphics.DrawImage(image, 0, 0, newWidth, newHeight);
+                    graphics.DrawImage(image, 0, 0, newSize.Width, newSize.Height);
                 }, null);
 
             return reduced;
         }
 
-        private static int ReductionFactor(int width, int height, int minDimension)
-        {
-            if (minDimension == 0) return 0;
-            // We default minimum number of pixels to 256 (=16^2) and max as 1024 (=32^2)
-            var area = Math.Abs((double)width * height);
-            // if the area is too small, we don't reduce
-            if (area < double.Epsilon) return 1;
-            var maxFactor = Math.Sqrt(area) / minDimension;
-            var minFactor = maxFactor / 2.0;
-            // find a factor that is closest to be dividable by both X and Y
-            // we could do this more efficiently, but with usual image sizes it won't matter a lot 
-            var factor = 1;
-            double smallestSquaredDistance = int.MaxValue;
-            for (var i = (int)Math.Ceiling(minFactor); i <= (int)Math.Floor(maxFactor); i++)
-            {
-                var diffX = width % i;
-                if (diffX > i / 2) diffX -= i;
-                var diffY = height % i;
-                if (diffY > i / 2) diffY -= i;
-                var squaredDistance = (double)diffX * diffX + (double)diffY * diffY;
-                if (!(squaredDistance < smallestSquaredDistance)) continue;
-                smallestSquaredDistance = squaredDistance;
-                factor = i;
-                if (squaredDistance < double.Epsilon) break;
-            }
-            return factor;
-        }
-
-        public string Save(string path)
-        {
-            var fullPath = FullPathName(path);
-            DoOnImage(image => image.Save(fullPath, image.RawFormat), null);
-            return fullPath;
-        }
-
         private static double SimilarityBetween(Image left, Image right)
         {
-            const int colorDepth = 3; // RGB
+            const uint colorDepth = 3; // RGB
             var leftBytes = GetPixelData(left);
             var rightBytes = GetPixelData(right);
             var leftStride = leftBytes.Length / left.Height;
@@ -230,44 +252,37 @@ namespace ImageHandler
             var leftShorter = left.Height < right.Height;
             var minHeight = leftShorter ? left.Height : right.Height;
 
-            var overlapping = minHeight * minWidth;
-            var leftNonOverlapping = left.Height * left.Width - overlapping;
-            var rightNonOverlapping = right.Height * right.Width - overlapping;
+            var overlapping = (long)minHeight * minWidth;
+            var leftNonOverlapping = (long)left.Height * left.Width - overlapping;
+            var rightNonOverlapping = (long)right.Height * right.Width - overlapping;
             // if the sizes are different, we add the difference in length to the cumulative difference
             double totalDifference = leftNonOverlapping + rightNonOverlapping;
-
+            
             for (var i = 0; i < minHeight; i++)
             {
                 for (var j = 0; j < minWidth; j++)
                 {
                     var leftIndex = i * leftStride + j * colorDepth;
                     var rightIndex = i * rightStride + j * colorDepth;
-                    var colorDistance = 0.0;
+                    long colorDistance = 0;
                     for (var k = 0; k < colorDepth; k++)
                     {
-                        colorDistance += Sqr(leftBytes[leftIndex + k] - rightBytes[rightIndex + k]);
+                        colorDistance += (leftBytes[leftIndex + k] - rightBytes[rightIndex + k]).Sqr();
                     }
 
-                    colorDistance = Math.Sqrt(colorDistance);
-                    var pixelWeight = colorDistance <= 4 ? 0.0 : colorDistance <= 16 ? 0.5 : 1.0;
-                    totalDifference += pixelWeight;
+                    colorDistance = (long)Math.Round(Math.Sqrt(colorDistance),0);
+                    totalDifference += DifferenceWeight(colorDistance);
                 }
             }
 
             return 1.0 - totalDifference / (overlapping + leftNonOverlapping + rightNonOverlapping);
         }
 
-        public double SimilarityTo(Snapshot other)
+        private static double DifferenceWeight(long colorDistance)
         {
-            const int minPixelRoot = 16; // minimum 256 pixels, maximum 1024 pixels
-            var factor = ReductionFactor(_width, _height, minPixelRoot);
-            var thisReduced = Reduce(factor);
-            var otherReduced = other.Reduce(factor);
-            return SimilarityBetween(thisReduced, otherReduced);
+            if (colorDistance <= 8) return 0.0;
+            return colorDistance <= 16 ? 0.5 : 1.0;
         }
 
-        private static double Sqr(double x) => x * x;
-
-        public override string ToString() => _label;
     }
 }

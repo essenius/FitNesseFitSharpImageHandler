@@ -63,7 +63,7 @@ public double SimilarityTo(Snapshot other)
 Calculate the similarity of this image to another image.
 This is done by reducing the size of both images and then comparing the pixels.
 Returns a number between 0 and 1, where 0 means the images are completely different and 1 means they are identical
-up to a margin of 4 in color distance per pixel.
+up to a margin of 8 in color distance per pixel.
 
 ```csharp
 public override string ToString()
