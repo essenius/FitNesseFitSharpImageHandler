@@ -6,3 +6,4 @@
 3.2.1 Made ExtensionFunctions internal to avoid conflicts with other libraries
 3.2.2 Removed forgotten debug statements
 4.0.0 Migrated to .NET 8.0 (single target), extracted the Size class, improved reduction factor calculation. Unit test coverage 100%.
+4.0.1 Updated test categories and fixed some static analysis warnings

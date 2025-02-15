@@ -352,7 +352,7 @@ public class SnapshotTest
     }
 
     [TestMethod]
-    [TestCategory("Unit")]
+    [TestCategory("Windows")]
     public void SnapshotSimilarityBetweenTest()
     {
         AssertSimilarityBetween("4pixel.bmp", "4pixel-ok.bmp", 1, "all good");
@@ -363,7 +363,7 @@ public class SnapshotTest
     }
 
     [TestMethod]
-    [TestCategory("Unit")]
+    [TestCategory("Windows")]
     public void SnapshotSimilarityToTest()
     {
         var leftSnapshot = new Snapshot("4pixel.bmp");
@@ -377,7 +377,7 @@ public class SnapshotTest
     }
 
     [TestMethod]
-    [TestCategory("Unit")]
+    [TestCategory("Windows")]
     public void SnapshotVeryLargeCaptureTest()
     {
         // create black images of different sizes that are scaled versions of each other
