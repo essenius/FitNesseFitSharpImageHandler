@@ -1,4 +1,4 @@
-﻿// Copyright 2016-2024 Rik Essenius
+﻿// Copyright 2016-2025 Rik Essenius
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License. You may obtain a copy of the License at
@@ -16,35 +16,34 @@ using System.IO;
 using System.Runtime.Versioning;
 #endif
 
-namespace ImageHandler
+namespace ImageHandler;
+
+internal static class ExtensionFunctions
 {
-    internal static class ExtensionFunctions
+    [SupportedOSPlatform("windows")]
+    public static byte[] ToByteArray(this Image image, ImageFormat format)
     {
-        [SupportedOSPlatform("windows")]
-        public static byte[] ToByteArray(this Image image, ImageFormat format)
-        {
-            using var ms = new MemoryStream();
-            image.Save(ms, format);
-            return ms.ToArray();
-        }
-
-
-        public static long Sqr(this int input)
-        {
-            return (long)input * input;
-        }
-
-        // Divides two unsigned integers and rounds the result to the nearest integer
-
-        public static int Div(this int top, int bottom)
-        {
-            return (top + bottom / 2) / bottom;
-        }
-
-        public static long Div(this long top, long bottom)
-        {
-            return (top + bottom / 2) / bottom;
-        }
-
+        using var ms = new MemoryStream();
+        image.Save(ms, format);
+        return ms.ToArray();
     }
+
+
+    public static long Sqr(this int input)
+    {
+        return (long)input * input;
+    }
+
+    // Divides two unsigned integers and rounds the result to the nearest integer
+
+    public static int Div(this int top, int bottom)
+    {
+        return (top + bottom / 2) / bottom;
+    }
+
+    public static long Div(this long top, long bottom)
+    {
+        return (top + bottom / 2) / bottom;
+    }
+
 }

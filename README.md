@@ -24,7 +24,7 @@ Create a snapshot by first trying to base64 decode the input, and if that doesn'
 ```csharp
 public byte[] ByteArray { get; private set; }
 ```
-auto-property returning the byte array containing the image.
+auto-property returning the byte array containing the image. Handle with care (see [CA1819](https://learn.microsoft.com/en-gb/dotnet/fundamentals/code-analysis/quality-rules/ca1819))
 
 ```csharp
 public string MimeType
